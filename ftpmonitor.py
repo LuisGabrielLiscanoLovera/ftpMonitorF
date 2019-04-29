@@ -149,11 +149,10 @@ def copiaCCU0Z():
         global archivoU0Z,carpetaCompartida
         fileU0Z = str(archivoU0Z)
         if (path.exists(fileU0Z)):
-            print("exist")
-        shutil.copy(fileU0Z, carpetaCompartida)
-        logger.info("U0z copiado a a la carpeta compartida")
-        StatusPubU0Z=True
-
+            shutil.copy(fileU0Z, carpetaCompartida)
+            logger.info("U0z copiado a a la carpeta compartida")
+            StatusPubU0Z=True
+        else:StatusPubU0Z=False
     except Exception as e:
         logger.warning(str(e))
         StatusPubU0Z=False
@@ -163,9 +162,11 @@ def copiaCCS1():
     try:
         global archivoS1,carpetaCompartida
         fileS1 = str(archivoS1)
-        shutil.copy(fileS1, carpetaCompartida)
-        StatusPubS1=True
-        logger.info("S1 copiado a a la carpeta compartida")
+        if (path.exists(fileS1)):
+            shutil.copy(fileS1, carpetaCompartida)
+            StatusPubS1=True
+            logger.info("S1 copiado a a la carpeta compartida")
+        else:StatusPubS1=False
     except Exception as e:
         StatusPubS1=False
         logger.warning(str(e))
@@ -179,11 +180,13 @@ def pubCCU0Z():
         global archivoU0Z
         fileU0Z = str(archivoU0Z)
         file = open(fileU0Z,'rb')
-        if(conexionFTP()['ftp'].storbinary('STOR %s' % fileU0Z, file)):StatusPubU0Z=True
-        else:StatusPubU0Z=True
-        file.close()
-        logger.info("U0Z publicado al ftp")
-        conexionFTP()['ftp'].quit()
+        if (path.exists(fileU0Z)):
+            if(conexionFTP()['ftp'].storbinary('STOR %s' % fileU0Z, file)):StatusPubU0Z=True
+            else:StatusPubU0Z=True
+            file.close()
+            logger.info("U0Z publicado al ftp")
+            conexionFTP()['ftp'].quit()
+        else:StatusPubU0Z=False
     except Exception as e:logger.warning(str(e))
     return StatusPubU0Z
 
@@ -191,15 +194,18 @@ def pubCCS1():
     try:
         global archivoS1
         fileS1 = str(archivoS1)
-        file = open(fileS1,'rb')
-        if(conexionFTP()['ftp'].storbinary('STOR %s' % fileS1, file)):StatusPubS1=True
-        else:StatusPubS1=True
-        file.close()
-        conexionFTP()['ftp'].quit()
-        logger.info("S1 publicado al ftp")
-    except Exception as e:logger.warning(str(e))
+        if (path.exists(fileS1)):
+            file = open(fileS1,'rb')
+            if(conexionFTP()['ftp'].storbinary('STOR %s' % fileS1, file)):StatusPubS1=True
+            else:StatusPubS1=True
+            file.close()
+            conexionFTP()['ftp'].quit()
+            logger.info("S1 publicado al ftp")
+            StatusPubS1=False
+    except Exception as e:
+        StatusPubS1=False
+        logger.warning(str(e))
     return StatusPubS1
-
 
 def main ():
     global ayer,today,tiempoSlep,archivoU0Z,archivoS1
@@ -241,11 +247,10 @@ def mainDos():
     slp(tiempoSlep)
     try:
         enviado =False
-        print (copiaCCS1(),copiaCCU0Z())
         if (copiaCCS1() and copiaCCU0Z()):
             logger.info('Archivo U0Z y S1 creado satifactoriamente')
             if (copiaCCU0Z() and copiaCCS1()):
-                print("main modo 2 Exito")
+
                 logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
                 enviado = True
             else:
@@ -254,8 +259,6 @@ def mainDos():
         else:print("Error al escribir U0Z y S1")
     except Exception as e:logger.warning(str(e))
     return enviado
-
-
 def mainTres():
     global tiempoSlep,archivoU0Z,archivoS1
     slp(tiempoSlep)
@@ -284,6 +287,7 @@ def intento():
 
 #comprobamos el modo de ejecuccion
 def intentoDos():
+    global tiempoSlep
     ejecute=1
     while ejecute > 0:
         if mainDos():
@@ -291,6 +295,7 @@ def intentoDos():
         else:
             logger.warning('error en jecucion al intento{' + str(ejecute)+'}')
         ejecute+=1
+        slp(tiempoSlep)
         if ejecute == 5:#numeros de intentos
             break
 
@@ -302,6 +307,7 @@ def intentoTres():
         else:
             logger.warning('error en jecucion al intento{' + str(ejecute)+'}')
         ejecute+=1
+        slp(tiempoSlep)
         if ejecute == 5:#numeros de intentos
             break
 def modoUno():
@@ -317,6 +323,7 @@ def modoUno():
                 else:
                     intento()
     else:intento()
+
 def modoDos():
     if mainDos():
         fechaEjecu=stFcfha()
