@@ -1,6 +1,7 @@
 import os.path as path
 import configparser as cp
 from os import system as sys
+from os import remove as rm
 from datetime import date, timedelta
 from time import sleep as slp
 from ftplib import FTP
@@ -12,42 +13,25 @@ import logging.handlers
 #si exsiste los archivo dependiente
 ifExi = lambda archivo:path.exists(archivo)
 
-vbsfileU0z  =  'IntTFHKAU0z.vbs'
-vbsfileS1   =  'IntTFHKAUS1.vbs'
+vbsfile       =  'IntTFHKA.vbs'
 atoRnWinRgt   =  'Intregit.bat'
 
 def IntTFHKA():
-    global vbsfileU0z,vbsfileS1
-
-    IntTFHAHiden = open(vbsfileU0z, "a+")
+    global vbsfile,atoRnWinRgt    
+    IntTFHAHiden = open(atoRnWinRgt, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="""
-    Set objShell = WScript.CreateObject("WScript.Shell")
-    objShell.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True
-    """
+    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\MyAppPath\\MyApp.exe\""
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
     IntTFHAHiden.close()
-
-    IntTFHAHiden = open(vbsfileS1, "a+")
+    
+    IntTFHAHiden = open(vbsfile, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="""
-    Set objShell = WScript.CreateObject("WScript.Shell")
-    objShell.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True
-    """
+    scrpVBS="""Set Suno = WScript.CreateObject("WScript.Shell")\nSuno.Run("IntTFHKA.exe UploadStatusCmd(S1)"), 0, True\nSet uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True\nSet bat = WScript.CreateObject("WScript.Shell")\nbat.Run("%s"), 0, True"""%str(atoRnWinRgt)
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
-    IntTFHAHiden.close()
+    IntTFHAHiden.close()   
 
-    IntTFHAHiden = open(atoRnWinRgt, "a+")
-    final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="REG ADD ",'"HKCU','',
-    IntTFHAHiden.writelines(scrpVBS)
-    IntTFHAHiden.seek(final_de_IntTFHAHiden)
-    IntTFHAHiden.close()
-
-
-IntTFHKA()
 
 try:
     logger    = logging.getLogger('Monitoreo de venta')
@@ -78,8 +62,14 @@ try:
         archivoS1           = codigo+"_%s_S1.txt"%numpc
     
     else:
+        confTxt = open(conf, "w+")
+        final_de_confTxt = confTxt.tell()
+        conftxt="""[General]\ncodigo = set\nnumpc = set\nslep = 1\n\n[PathFTP]\nrutafile = /ftpruta\n\n[FeEjecucion]\nfecha = \n\n[modoEjecucion]\nmodo = 1\ncarpetacompartida = temp"""
+        confTxt.writelines(conftxt)
+        confTxt.seek(final_de_IntTFHAHiden)
+        confTxt.close()
+        logger.warning("Aarchivo de conf ya encuentra disponible ")
         exit()
-        logger.warning("Aarchivo de conf no se encuentra disponible")
 except Exception as e:
     print (e)
     logger.warning(str(e))
@@ -107,9 +97,12 @@ def stFcfha():
 #activa IntTFHKA.exe para generar los reportes
 
 def activarIntTFHKA():#retorna bool
-    try:        
-        #sys("IntTFHKA.exe UploadReportCmd(U0z)")
-        #sys("IntTFHKA.exe UploadStatusCmd(S1)")
+    try:
+        global vbsfile
+        IntTFHKA()
+        sys(vbsfile)
+        rm(str(vbsfile))
+        rm(str(atoRnWinRgt))       
         statusIntTFHKA = True
         logger.info('Programa IntTFHKA ejecutado correctamente!')
     except Exception as e:
@@ -333,8 +326,8 @@ def modoUno():
         if main():
             logger.critical('Ejcucion exitoxa!')
             while (True):
-                if (str(fechaEjecu)  ==  str(date.today())):pass
-                else:fechaEjecu=date.today();stFcfha();break
+                if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
+                else:fechaEjecu       =  date.today();stFcfha();break
         else:logger.warning('Error en jecucion en systema ')
         
 def modoDos():
@@ -343,8 +336,8 @@ def modoDos():
         if mainDos():
             logger.critical('Ejcucion exitoxa! modo 2')
             while True:            
-                if (str(fechaEjecu)  ==  str(date.today())):pass
-                else:fechaEjecu = date.today();stFcfha();break
+                if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
+                else:fechaEjecu       =  date.today();stFcfha();break
         else:logger.warning('Error en jecucion en systema ')
           
 def modoTres():
@@ -353,8 +346,8 @@ def modoTres():
         if mainTres():
             logger.critical('Ejcucion exitoxa! modo 3')
             while (True):
-                if (str(fechaEjecu)  ==  str(date.today())):pass
-                else:fechaEjecu  = date.today();stFcfha();break
+                if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
+                else:fechaEjecu      =   date.today();stFcfha();break
         else:logger.warning('Error en jecucion en systema ')
 
 if modoEjecucion == 1:modoUno()
@@ -363,26 +356,3 @@ if modoEjecucion == 3:modoTres()
 if (modoEjecucion > 3  or  modoEjecucion < 0):
     logger.warning('Error archivo de configuracion')
     exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
