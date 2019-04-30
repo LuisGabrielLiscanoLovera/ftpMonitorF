@@ -11,8 +11,8 @@ logger=logging.getLogger('Monitoreo de venta')
 #https://www.lawebdelprogramador.com/codigo/Python/2214-Crear-un-fichero-de-log-y-rotarlo-por-tiempo.html
 #generador de log
 logger.setLevel(logging.DEBUG)
-handler = logging.handlers.TimedRotatingFileHandler(filename='file.log', when="m", interval=1, backupCount=5)
-formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%y-%m-%d %H:%M:%S')
+handler = logging.handlers.TimedRotatingFileHandler(filename='log/file.log', when="m", interval=1, backupCount=5)
+formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%d-%m-%y %H:%M:%S')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 #fecha
@@ -24,6 +24,7 @@ try:
     configuracion = cp.ConfigParser()
     configuracion.read('conf.cfg')
     carpetaCompartida = configuracion['modoEjecucion']['carpetaCompartida']
+    
     codigo = configuracion['General']['codigo']
     numpc = configuracion['General']['numpc']
     tiempoSlep = int(configuracion['General']['slep'])
@@ -32,10 +33,12 @@ try:
     archivoS1 = codigo+"_%s_S1.txt"%numpc
     modoEjecucion = int(configuracion['modoEjecucion']['modo'])
 
+    
     rutaFtp = configuracion['PathFTP']['rutaFile']
     logger.info('Archivo U0Z y S1 creado satifactoriamente')
 
 except Exception as e:
+    print (e)
     logger.warning(str(e))
     #exit()#si no consigue archivo de configuracion cierra el programa
 
@@ -248,16 +251,15 @@ def mainDos():
     try:
         enviado =False
         if (copiaCCS1() and copiaCCU0Z()):
-            logger.info('Archivo U0Z y S1 creado satifactoriamente')
-            if (copiaCCU0Z() and copiaCCS1()):
-
-                logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
-                enviado = True
-            else:
-                enviado = False
-                print("Error al copiar archivo U0Z y S1")
-        else:print("Error al escribir U0Z y S1")
-    except Exception as e:logger.warning(str(e))
+            logger.info('Archivo U0Z y S1 creado satifactoriamente')            
+            logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
+            enviado = True            
+        else:
+            enviado = False
+            print("Error al escribir U0Z y S1")
+    except Exception as e:
+        print(e)
+        logger.warning(str(e))
     return enviado
 def mainTres():
     global tiempoSlep,archivoU0Z,archivoS1
@@ -358,6 +360,3 @@ if modoEjecucion ==3:modoTres()
 if (modoEjecucion > 3  or  modoEjecucion < 0):
     logger.warning('Error archivo de configuracion')
     exit()
-
-
-
