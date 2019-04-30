@@ -9,20 +9,47 @@ import logging
 import logging.handlers
 
 
-
-
-
-
-
-
-
 #si exsiste los archivo dependiente
 ifExi = lambda archivo:path.exists(archivo)
 
+vbsfileU0z  =  'IntTFHKAU0z.vbs'
+vbsfileS1   =  'IntTFHKAUS1.vbs'
+atoRnWinRgt   =  'Intregit.bat'
 
+def IntTFHKA():
+    global vbsfileU0z,vbsfileS1
+
+    IntTFHAHiden = open(vbsfileU0z, "a+")
+    final_de_IntTFHAHiden = IntTFHAHiden.tell()
+    scrpVBS="""
+    Set objShell = WScript.CreateObject("WScript.Shell")
+    objShell.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True
+    """
+    IntTFHAHiden.writelines(scrpVBS)
+    IntTFHAHiden.seek(final_de_IntTFHAHiden)
+    IntTFHAHiden.close()
+
+    IntTFHAHiden = open(vbsfileS1, "a+")
+    final_de_IntTFHAHiden = IntTFHAHiden.tell()
+    scrpVBS="""
+    Set objShell = WScript.CreateObject("WScript.Shell")
+    objShell.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True
+    """
+    IntTFHAHiden.writelines(scrpVBS)
+    IntTFHAHiden.seek(final_de_IntTFHAHiden)
+    IntTFHAHiden.close()
+
+    IntTFHAHiden = open(atoRnWinRgt, "a+")
+    final_de_IntTFHAHiden = IntTFHAHiden.tell()
+    scrpVBS="REG ADD ",'"HKCU','',
+    IntTFHAHiden.writelines(scrpVBS)
+    IntTFHAHiden.seek(final_de_IntTFHAHiden)
+    IntTFHAHiden.close()
+
+
+IntTFHKA()
 
 try:
-
     logger    = logging.getLogger('Monitoreo de venta')
     logger.setLevel(logging.DEBUG)
     handler   = logging.handlers.TimedRotatingFileHandler(filename='log/file.log', when="m", interval=1, backupCount=5)
@@ -32,12 +59,12 @@ try:
     #fecha
     today = date.today()
     #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha 
- 
     #parametro de configuracion
     configuracion   =   cp.ConfigParser()
     conf            =   'conf.cfg'
     txtStImp        =   'Stat_Err.txt'
-    
+    reporteTxt      =   'Reporte.txt'
+    statusTxt       =   'Status.txt'
     if (ifExi(conf)):
         configuracion.read(conf)
         carpetaCompartida   = configuracion['modoEjecucion']['carpetaCompartida']
@@ -53,7 +80,6 @@ try:
     else:
         exit()
         logger.warning("Aarchivo de conf no se encuentra disponible")
-
 except Exception as e:
     print (e)
     logger.warning(str(e))
@@ -79,10 +105,11 @@ def stFcfha():
     with open(conf, "w+") as configfile:configuracion.write(configfile);configfile.close()
     return configuracion['FeEjecucion']['fecha']
 #activa IntTFHKA.exe para generar los reportes
+
 def activarIntTFHKA():#retorna bool
     try:        
-        sys("IntTFHKA.exe UploadReportCmd(U0z)")
-        sys("IntTFHKA.exe UploadStatusCmd(S1)")
+        #sys("IntTFHKA.exe UploadReportCmd(U0z)")
+        #sys("IntTFHKA.exe UploadStatusCmd(S1)")
         statusIntTFHKA = True
         logger.info('Programa IntTFHKA ejecutado correctamente!')
     except Exception as e:
@@ -103,25 +130,23 @@ def getStatusIntTFHKA():#retorna bool
     
     except Exception as e:logger.warning(str(e))
     return getStatusIntTFHKA
-
-
 #lectura de los archivos y registro de archivo para el servidor ftp
 #c/wc U0Z
+
 def cwU0Z():
     try:
-        global archivoU0Z
+        global archivoU0Z,reporteTxt
         
         if ifExi(archivoU0Z):
             U0Z_ftp          = open(archivoU0Z, "a+")
             #contenido_U0Z   = U0Z_ftp.rd()
             final_de_U0Z_ftp = U0Z_ftp.tell()
-            listaU0Z = ['%s'% open("Reporte.txt", "r+").read()]
+            listaU0Z = ['%s'% open(reporteTxt, "r+").read()]
             U0Z_ftp.writelines(listaU0Z)
             U0Z_ftp.seek(final_de_U0Z_ftp)
             cwU0Z             = True
             U0Z_ftp.close()
         else:
-
             cwU0Z            = False
             logger.warning(str(archivoU0Z)+" No existe!")        
     except Exception as e:
@@ -132,12 +157,12 @@ def cwU0Z():
 
 def cwS1():
     try:
-        global archivoS1
+        global archivoS1,statusTxt
         if ifExi(archivoS1):
             S1_ftp  =  open(archivoS1, "a+")
             #contenido_S1 = S1_ftp.rd()
             final_de_S1_ftp = S1_ftp.tell()
-            listaS1         = ['%s'% open("Status.txt", "r+").read()]
+            listaS1         = ['%s'% open(statusTxt, "r+").read()]
             S1_ftp.writelines(listaS1)
             S1_ftp.seek(final_de_S1_ftp)
             cwS1            =  True
@@ -168,7 +193,6 @@ def pubS1():
         file    =  open(fileS1,'rb')
         if(conexionFTP()['ftp'].storbinary('STOR %s' % fileS1, file)):StatusPubS1  =  True
         else:StatusPubS1  =  False
-        
         file.close()
         conexionFTP()['ftp'].quit()
         logger.info("S1 publicado al ftp")
@@ -231,6 +255,7 @@ def pubCCS1():
         StatusPubS1  =  False
         logger.warning(str(e))
     return StatusPubS1
+
 
 def main():
     global today,tiempoSlep,archivoU0Z,archivoS1
