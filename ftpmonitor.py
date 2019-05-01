@@ -26,7 +26,7 @@ def IntTFHKA():
     global vbsfile,atoRnWinRgt    
     IntTFHAHiden = open(atoRnWinRgt, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.exe\""
+    scrpVBS="REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.exe\""
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
     IntTFHAHiden.close()
