@@ -19,13 +19,14 @@ conf          =  'conf.cfg'
 txtStImp      =  'Stat_Err.txt'
 reporteTxt    =  'Reporte.txt'
 statusTxt     =  'Status.txt'
+
     
 def IntTFHKA():
 
     global vbsfile,atoRnWinRgt    
     IntTFHAHiden = open(atoRnWinRgt, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\MyAppPath\\reboot.exe\""
+    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.exe\""
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
     IntTFHAHiden.close()
@@ -109,6 +110,7 @@ def activarIntTFHKA():#retorna bool
         global vbsfile
         IntTFHKA()
         sys(vbsfile)
+        
         rm(str(vbsfile))
         rm(str(atoRnWinRgt))       
         statusIntTFHKA = True
@@ -219,6 +221,7 @@ def copiaCCS1():
         if (path.exists(fileS1)):
             shutil.copy(fileS1, carpetaCompartida)
             StatusPubS1  =  True
+            
             logger.info("S1 copiado a a la carpeta compartida")
         else:StatusPubS1 =False
     except Exception as e:logger.warning(str(e))
@@ -267,7 +270,7 @@ def main():
                 if (getStatusIntTFHKA()):
                     logger.critical('impresora conectada satfactoriamente ')
                     if (cwU0Z() and cwS1()):
-                        logger.info('Archivo U0Z y S1 crdo satifactoriamente')
+                        logger.info('Archivo U0Z y S1 creado satifactoriamente')
                         if conexionFTP()['estatusCftp']:
                             logger.info('conexiona ftp co el servidor en sincronia ')
                             if (pubU0Z() and pubS1()):
@@ -299,10 +302,12 @@ def mainDos():
             if (getStatusIntTFHKA()):
                 logger.critical('impresora conectada satfactoriamente ')
                 if (cwU0Z() and cwS1()):
-                    logger.info('Archivo U0Z y S1 crdo satifactoriamente')
+                    logger.info('Archivo U0Z y S1 creado satifactoriamente')
                     if (copiaCCS1() and copiaCCU0Z()):
                         logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
-                        enviado  =  True            
+                        enviado  =  True
+                        rm(archivoS1)
+                        rm(archivoU0Z)         
                     else:
                         enviado  =  False
                         print("Error al escribir U0Z y S1")
