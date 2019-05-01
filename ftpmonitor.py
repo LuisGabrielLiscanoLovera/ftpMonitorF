@@ -15,24 +15,27 @@ ifExi = lambda archivo:path.exists(archivo)
 
 vbsfile       =  'IntTFHKA.vbs'
 atoRnWinRgt   =  'Intregit.bat'
-
+conf          =  'conf.cfg'
+txtStImp      =  'Stat_Err.txt'
+reporteTxt    =  'Reporte.txt'
+statusTxt     =  'Status.txt'
+    
 def IntTFHKA():
+
     global vbsfile,atoRnWinRgt    
     IntTFHAHiden = open(atoRnWinRgt, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\MyAppPath\\reboot.vbs\""
+    scrpVBS="REG ADD \"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\MyAppPath\\reboot.exe\""
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
     IntTFHAHiden.close()
-    
     IntTFHAHiden = open(vbsfile, "w+")
     final_de_IntTFHAHiden = IntTFHAHiden.tell()
     scrpVBS="""Set Suno = WScript.CreateObject("WScript.Shell")\nSuno.Run("IntTFHKA.exe UploadStatusCmd(S1)"), 0, True\nSet uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True\nSet bat = WScript.CreateObject("WScript.Shell")\nbat.Run("%s"), 0, True"""%str(atoRnWinRgt)
     IntTFHAHiden.writelines(scrpVBS)
     IntTFHAHiden.seek(final_de_IntTFHAHiden)
     IntTFHAHiden.close()   
-
-
+    
 try:
     logger    = logging.getLogger('Monitoreo de venta')
     logger.setLevel(logging.DEBUG)
@@ -45,10 +48,6 @@ try:
     #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha 
     #parametro de configuracion
     configuracion   =   cp.ConfigParser()
-    conf            =   'conf.cfg'
-    txtStImp        =   'Stat_Err.txt'
-    reporteTxt      =   'Reporte.txt'
-    statusTxt       =   'Status.txt'
     if (ifExi(conf)):
         configuracion.read(conf)
         carpetaCompartida   = configuracion['modoEjecucion']['carpetaCompartida']
@@ -56,7 +55,9 @@ try:
         rutaFtp             = configuracion['PathFTP']['rutaFile']
         codigo              = configuracion['General']['codigo']
         numpc               = configuracion['General']['numpc']
+        #otro               = configuracion['General']['otro']
         tiempoSlep          = int(configuracion['General']['slep'])
+        #print (otro)
         #nombre salida archivo
         archivoU0Z          = codigo+"_%s_U0Z.txt"%numpc
         archivoS1           = codigo+"_%s_S1.txt"%numpc
@@ -76,17 +77,24 @@ except Exception as e:
     #exit()#si no consigue archivo de configuracion cierra el programa
 
 def conexionFTP():
-    try:
-        global rutaFtp
-        ftp = FTP('ftp.cocaisystem.com')
-        ftp.login('cocaisys','mE]hX9aW6X32b+')
-        ftp.cwd(rutaFtp)
-        estatusCftp = True
-    except Exception as e:
-        logger.warning('Error al conecrar al servidor ftp '+str(e))
-        estatusCftp  =  False
+    estatusCftp=0
+    while True:
+        try:
+            global rutaFtp,tiempoSlep
+            ftp = FTP('ftp.cocaisystem.com')
+            ftp.login('cocaisys','mE]hX9aW6X32b+')
+            ftp.cwd(rutaFtp)
+            estatusCftp = True
+
+        except Exception as e:
+            logger.warning('Error al conectar al servidor ftp '+str(e))
+            estatusCftp  =  False
+            
+        if estatusCftp == True:break
+        else:slp(tiempoSlep)
+    
     return {'ftp':ftp,'estatusCftp':estatusCftp}
-#fecha de ejecucion al archivo de configuracionn rtn string fecha
+#fecha de ejec ucion al archivo de configuracionn rtn string fecha
 
 def stFcfha():
     global configuracion,conf
@@ -112,15 +120,16 @@ def activarIntTFHKA():#retorna bool
 
 def getStatusIntTFHKA():#retorna bool
     try:
-        global txtStImp
+        global txtStImp,tiempoSlep
         if ifExi(txtStImp):
             getSta    = open(txtStImp, "r+").read()
             getStatus = getSta[0:5].strip()
             if(len(getStatus)    ==  4):getStatusIntTFHKA   =  True
-            else:getStatusIntTFHKA   = False
-            
+            else:
+                while True:
+                    if activarIntTFHKA():break
+                    else:slp(tiempoSlep)           
         else:logger.warning(txtStImp+"error archivo")
-    
     except Exception as e:logger.warning(str(e))
     return getStatusIntTFHKA
 #lectura de los archivos y registro de archivo para el servidor ftp
@@ -130,18 +139,15 @@ def cwU0Z():
     try:
         global archivoU0Z,reporteTxt
         
-        if ifExi(archivoU0Z):
-            U0Z_ftp          = open(archivoU0Z, "a+")
-            #contenido_U0Z   = U0Z_ftp.rd()
-            final_de_U0Z_ftp = U0Z_ftp.tell()
-            listaU0Z = ['%s'% open(reporteTxt, "r+").read()]
-            U0Z_ftp.writelines(listaU0Z)
-            U0Z_ftp.seek(final_de_U0Z_ftp)
-            cwU0Z             = True
-            U0Z_ftp.close()
-        else:
-            cwU0Z            = False
-            logger.warning(str(archivoU0Z)+" No existe!")        
+        U0Z_ftp          = open(archivoU0Z, "a+")
+        #contenido_U0Z   = U0Z_ftp.rd()
+        final_de_U0Z_ftp = U0Z_ftp.tell()
+        listaU0Z = ['%s \n'% open(reporteTxt, "r+").read()]
+        U0Z_ftp.writelines(listaU0Z)
+        U0Z_ftp.seek(final_de_U0Z_ftp)
+        cwU0Z             = True
+        U0Z_ftp.close()
+
     except Exception as e:
         logger.warning(str(e))
         cwU0Z  =  False
@@ -151,19 +157,20 @@ def cwU0Z():
 def cwS1():
     try:
         global archivoS1,statusTxt
-        if ifExi(archivoS1):
-            S1_ftp  =  open(archivoS1, "a+")
-            #contenido_S1 = S1_ftp.rd()
-            final_de_S1_ftp = S1_ftp.tell()
-            listaS1         = ['%s'% open(statusTxt, "r+").read()]
-            S1_ftp.writelines(listaS1)
-            S1_ftp.seek(final_de_S1_ftp)
-            cwS1            =  True
-            S1_ftp.close()
-        else:
-            logger.warning(archivoS1 + " No existe!")
-            cwS1  =  False
-    except Exception as e:logger.warning(str(e));S1_ftp.close()
+        S1_ftp  =  open(archivoS1, "a+")
+        #contenido_S1 = S1_ftp.rd()
+        final_de_S1_ftp = S1_ftp.tell()
+        listaS1         = ['%s \n'% open(statusTxt, "r+").read()]
+        S1_ftp.writelines(listaS1)
+        S1_ftp.seek(final_de_S1_ftp)
+        cwS1            =  True
+        S1_ftp.close()     
+
+        
+    except Exception as e:
+        cwS1  =  False
+        logger.warning(str(e))
+        S1_ftp.close()
     return cwS1
 #U0Z
 def pubU0Z():
@@ -310,12 +317,17 @@ def mainTres():
     slp(tiempoSlep)
     try:
         enviado      =  False
-        if (pubCCS1() and pubCCU0Z()):
-            logger.info('Archivo U0Z y S1 publicado a la carpeta compartida satifactoriamente')
-            enviado  =  True
-        else:
-            enviado  =  False
-            print("Error al copiar archivo U0Z y S1")
+        while True:
+            if (pubCCS1() and pubCCU0Z()):
+                logger.info('Archivo U0Z y S1 publicado a la carpeta compartida satifactoriamente')
+                enviado  =  True
+                rm(archivoS1)
+                rm(archivoU0Z)
+                break
+            else:
+                slp(tiempoSlep)
+                logger.warning("Error al copiar archivo U0Z y S1")
+        
     except Exception as e:logger.warning(str(e))
     return enviado
 
