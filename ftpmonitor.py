@@ -2,6 +2,7 @@ import os.path as path
 import configparser as cp
 from os import system as sys
 from os import remove as rm
+from os import mkdir as mk
 from datetime import date, timedelta
 from time import sleep as slp
 from ftplib import FTP
@@ -15,35 +16,28 @@ ifExi = lambda archivo:path.exists(archivo)
 
 vbsfile       =  'IntTFHKA.vbs'
 vbsfileAu     =  'reboot.vbs'
-atoRnWinRgt   =  'Intregit.bat'
 conf          =  'conf.cfg'
 txtStImp      =  'Stat_Err.txt'
 reporteTxt    =  'Reporte.txt'
 statusTxt     =  'Status.txt'
+log           =  'log'
 
-    
+
 def IntTFHKA():
-    global vbsfile,atoRnWinRgt,vbsfileAu    
-    if ifExi(atoRnWinRgt):pass
-    else:"en cmmd"
-        IntTFHAHiden = open(atoRnWinRgt, "w+")
-        final_de_IntTFHAHiden = IntTFHAHiden.tell()
-        scrpVBS="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.vbs\""""
-        print(scrpVBS)
-        IntTFHAHiden.writelines(scrpVBS)
-        IntTFHAHiden.seek(final_de_IntTFHAHiden)
-        IntTFHAHiden.close()
-    
+    global vbsfile,vbsfileAu
+    scrpVBS="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\Reboot.exe\""""
+    #sys(scrpVBS)
+
     if ifExi(vbsfile):pass
     else:
         IntTFHAHiden = open(vbsfile, "w+")
         final_de_IntTFHAHiden = IntTFHAHiden.tell()
         scrpVBS="""Set Suno = WScript.CreateObject("WScript.Shell")\nSuno.Run("IntTFHKA.exe UploadStatusCmd(S1)"), 0, True\n
-        Set uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True\nSet bat = WScript.CreateObject("WScript.Shell")\nbat.Run("%s"), 0, True"""%str(atoRnWinRgt)
+        Set uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True"""
         IntTFHAHiden.writelines(scrpVBS)
         IntTFHAHiden.seek(final_de_IntTFHAHiden)
-        IntTFHAHiden.close()   
-    
+        IntTFHAHiden.close()
+
     if ifExi(vbsfileAu):pass
     else:
         AutrVbs = open(vbsfileAu, "w+")
@@ -51,11 +45,11 @@ def IntTFHKA():
         scrpVBS="""Set atr = WScript.CreateObject("WScript.Shell")\natr.Run("reboot.exe"), 0, True\n"""
         AutrVbs.writelines(scrpVBS)
         AutrVbs.seek(final_de_AutrVbs)
-        AutrVbs.close()   
-    
+        AutrVbs.close()
+
 try:
     IntTFHKA()
-        
+    if not path.exists(log):mk(log)
     logger    = logging.getLogger('Monitoreo de venta')
     logger.setLevel(logging.DEBUG)
     handler   = logging.handlers.TimedRotatingFileHandler(filename='log/file.log', when="m", interval=1, backupCount=5)
@@ -64,7 +58,7 @@ try:
     logger.addHandler(handler)
     #fecha
     today = date.today()
-    #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha 
+    #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha
     #parametro de configuracion
     configuracion   =   cp.ConfigParser()
     if (ifExi(conf)):
@@ -80,18 +74,17 @@ try:
         #nombre salida archivo
         archivoU0Z          = codigo+"_%s_U0Z.txt"%numpc
         archivoS1           = codigo+"_%s_S1.txt"%numpc
-    
+
     else:
         confTxt = open(conf, "w+")
         final_de_confTxt = confTxt.tell()
         conftxt="""[General]\ncodigo = set\nnumpc = set\nslep = 1\n\n[PathFTP]\nrutafile = /ftpruta\n\n[FeEjecucion]\nfecha = \n\n[modoEjecucion]\nmodo = 1\ncarpetacompartida = temp"""
         confTxt.writelines(conftxt)
-        confTxt.seek(final_de_IntTFHAHiden)
+        confTxt.seek(final_de_confTxt)
         confTxt.close()
         logger.warning("Aarchivo de conf ya encuentra disponible ")
         exit()
 except Exception as e:
-    print (e)
     logger.warning(str(e))
     #exit()#si no consigue archivo de configuracion cierra el programa
 
@@ -108,10 +101,10 @@ def conexionFTP():
         except Exception as e:
             logger.warning('Error al conectar al servidor ftp '+str(e))
             estatusCftp  =  False
-            
+
         if estatusCftp == True:break
         else:slp(tiempoSlep)
-    
+
     return {'ftp':ftp,'estatusCftp':estatusCftp}
 #fecha de ejec ucion al archivo de configuracionn rtn string fecha
 
@@ -127,9 +120,7 @@ def activarIntTFHKA():#retorna bool
     try:
         global vbsfile
         sys(vbsfile)
-        
-        #rm(str(vbsfiler
-        #rm(str(atoRnWinRgt))       
+        #rm(str(vbsfiler)
         statusIntTFHKA = True
         logger.info('Programa IntTFHKA ejecutado correctamente!')
     except Exception as e:
@@ -147,7 +138,7 @@ def getStatusIntTFHKA():#retorna bool
             else:
                 while True:
                     if activarIntTFHKA():break
-                    else:slp(tiempoSlep)           
+                    else:slp(tiempoSlep)
         else:logger.warning(txtStImp+"error archivo")
     except Exception as e:logger.warning(str(e))
     return getStatusIntTFHKA
@@ -157,7 +148,6 @@ def getStatusIntTFHKA():#retorna bool
 def cwU0Z():
     try:
         global archivoU0Z,reporteTxt
-        
         U0Z_ftp          = open(archivoU0Z, "a+")
         #contenido_U0Z   = U0Z_ftp.rd()
         final_de_U0Z_ftp = U0Z_ftp.tell()
@@ -183,15 +173,16 @@ def cwS1():
         S1_ftp.writelines(listaS1)
         S1_ftp.seek(final_de_S1_ftp)
         cwS1            =  True
-        S1_ftp.close()     
+        S1_ftp.close()
 
-        
+
     except Exception as e:
         cwS1  =  False
         logger.warning(str(e))
         S1_ftp.close()
     return cwS1
 #U0Z
+
 def pubU0Z():
     try:
         global archivoU0Z
@@ -238,7 +229,6 @@ def copiaCCS1():
         if (path.exists(fileS1)):
             shutil.copy(fileS1, carpetaCompartida)
             StatusPubS1  =  True
-            
             logger.info("S1 copiado a a la carpeta compartida")
         else:StatusPubS1 =False
     except Exception as e:logger.warning(str(e))
@@ -278,24 +268,25 @@ def pubCCS1():
 
 
 def main():
-    global today,tiempoSlep,archivoU0Z,archivoS1
+    global today,tiempoSlep,archivoU0Z,archivoS1,vbsfile
     slp(tiempoSlep)
     try:
         enviado  =  False
         if (activarIntTFHKA()):
                 logger.info('Programa IntTFHKA activado ')
                 if (getStatusIntTFHKA()):
-                    logger.critical('impresora conectada satfactoriamente ')
+                    logger.info('impresora conectada satfactoriamente ')
                     if (cwU0Z() and cwS1()):
                         logger.info('Archivo U0Z y S1 creado satifactoriamente')
                         if conexionFTP()['estatusCftp']:
                             logger.info('conexiona ftp co el servidor en sincronia ')
                             if (pubU0Z() and pubS1()):
+                                rm(vbsfile)
                                 #conexionFTP()['ftp'].delete(archivoU0Z)
                                 #conexionFTP()['ftp'].delete(archivoS1)
                                 #conexionFTP()['ftp'].retrlines('LIST')
                                 conexionFTP()['ftp'].quit()
-                                logger.critical('archivo publicado al servidor ftp satfactoriamente ')
+                                logger.info('archivo publicado al servidor ftp satfactoriamente ')
                                 enviado  = True
                             else:
                                 enviado  = False
@@ -317,19 +308,19 @@ def mainDos():
         if (activarIntTFHKA()):
             logger.info('Programa IntTFHKA activado ')
             if (getStatusIntTFHKA()):
-                logger.critical('impresora conectada satfactoriamente ')
+                logger.info('impresora conectada satfactoriamente ')
                 if (cwU0Z() and cwS1()):
                     logger.info('Archivo U0Z y S1 creado satifactoriamente')
                     if (copiaCCS1() and copiaCCU0Z()):
                         logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
                         enviado  =  True
                         rm(archivoS1)
-                        rm(archivoU0Z)         
+                        rm(archivoU0Z)
                     else:
                         enviado  =  False
                         print("Error al escribir U0Z y S1")
                 else:print("Error al escribir U0Z y S1")
-            else:print("Error de conxion con impresora ")           
+            else:print("Error de conxion con impresora ")
         else:print("error de activacion de los archivos exe!")
     except Exception as e:logger.warning(str(e))
     return enviado
@@ -349,7 +340,7 @@ def mainTres():
             else:
                 slp(tiempoSlep)
                 logger.warning("Error al copiar archivo U0Z y S1")
-        
+
     except Exception as e:logger.warning(str(e))
     return enviado
 
@@ -358,27 +349,27 @@ def modoUno():
     fechaEjecu  =  stFcfha()
     while True:
         if main():
-            logger.critical('Ejcucion exitoxa!')
+            logger.info('Ejcucion exitoxa!')
             while (True):
                 if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
                 else:fechaEjecu       =  date.today();stFcfha();break
         else:logger.warning('Error en jecucion en systema ')
-        
+
 def modoDos():
     fechaEjecu  =  stFcfha()
     while (True):
         if mainDos():
-            logger.critical('Ejcucion exitoxa! modo 2')
-            while True:            
+            logger.info('Ejcucion exitoxa! modo 2')
+            while True:
                 if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
                 else:fechaEjecu       =  date.today();stFcfha();break
         else:logger.warning('Error en jecucion en systema ')
-          
+
 def modoTres():
     fechaEjecu  =  stFcfha()
     while (True):
         if mainTres():
-            logger.critical('Ejcucion exitoxa! modo 3')
+            logger.info('Ejcucion exitoxa! modo 3')
             while (True):
                 if (str(fechaEjecu)  ==  str(date.today())):slp(30000)
                 else:fechaEjecu      =   date.today();stFcfha();break
