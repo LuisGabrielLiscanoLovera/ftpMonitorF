@@ -14,6 +14,7 @@ import logging.handlers
 ifExi = lambda archivo:path.exists(archivo)
 
 vbsfile       =  'IntTFHKA.vbs'
+vbsfileAu     =  'reboot.vbs'
 atoRnWinRgt   =  'Intregit.bat'
 conf          =  'conf.cfg'
 txtStImp      =  'Stat_Err.txt'
@@ -22,22 +23,39 @@ statusTxt     =  'Status.txt'
 
     
 def IntTFHKA():
-
-    global vbsfile,atoRnWinRgt    
-    IntTFHAHiden = open(atoRnWinRgt, "w+")
-    final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"My App\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.exe\""
-    IntTFHAHiden.writelines(scrpVBS)
-    IntTFHAHiden.seek(final_de_IntTFHAHiden)
-    IntTFHAHiden.close()
-    IntTFHAHiden = open(vbsfile, "w+")
-    final_de_IntTFHAHiden = IntTFHAHiden.tell()
-    scrpVBS="""Set Suno = WScript.CreateObject("WScript.Shell")\nSuno.Run("IntTFHKA.exe UploadStatusCmd(S1)"), 0, True\nSet uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True\nSet bat = WScript.CreateObject("WScript.Shell")\nbat.Run("%s"), 0, True"""%str(atoRnWinRgt)
-    IntTFHAHiden.writelines(scrpVBS)
-    IntTFHAHiden.seek(final_de_IntTFHAHiden)
-    IntTFHAHiden.close()   
+    global vbsfile,atoRnWinRgt,vbsfileAu    
+    if ifExi(atoRnWinRgt):pass
+    else:"en cmmd"
+        IntTFHAHiden = open(atoRnWinRgt, "w+")
+        final_de_IntTFHAHiden = IntTFHAHiden.tell()
+        scrpVBS="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\reboot.vbs\""""
+        print(scrpVBS)
+        IntTFHAHiden.writelines(scrpVBS)
+        IntTFHAHiden.seek(final_de_IntTFHAHiden)
+        IntTFHAHiden.close()
+    
+    if ifExi(vbsfile):pass
+    else:
+        IntTFHAHiden = open(vbsfile, "w+")
+        final_de_IntTFHAHiden = IntTFHAHiden.tell()
+        scrpVBS="""Set Suno = WScript.CreateObject("WScript.Shell")\nSuno.Run("IntTFHKA.exe UploadStatusCmd(S1)"), 0, True\n
+        Set uceroz = WScript.CreateObject("WScript.Shell")\nuceroz.Run("IntTFHKA.exe UploadReportCmd(U0z)"), 0, True\nSet bat = WScript.CreateObject("WScript.Shell")\nbat.Run("%s"), 0, True"""%str(atoRnWinRgt)
+        IntTFHAHiden.writelines(scrpVBS)
+        IntTFHAHiden.seek(final_de_IntTFHAHiden)
+        IntTFHAHiden.close()   
+    
+    if ifExi(vbsfileAu):pass
+    else:
+        AutrVbs = open(vbsfileAu, "w+")
+        final_de_AutrVbs = AutrVbs.tell()
+        scrpVBS="""Set atr = WScript.CreateObject("WScript.Shell")\natr.Run("reboot.exe"), 0, True\n"""
+        AutrVbs.writelines(scrpVBS)
+        AutrVbs.seek(final_de_AutrVbs)
+        AutrVbs.close()   
     
 try:
+    IntTFHKA()
+        
     logger    = logging.getLogger('Monitoreo de venta')
     logger.setLevel(logging.DEBUG)
     handler   = logging.handlers.TimedRotatingFileHandler(filename='log/file.log', when="m", interval=1, backupCount=5)
@@ -108,11 +126,10 @@ def stFcfha():
 def activarIntTFHKA():#retorna bool
     try:
         global vbsfile
-        IntTFHKA()
         sys(vbsfile)
         
-        rm(str(vbsfile))
-        rm(str(atoRnWinRgt))       
+        #rm(str(vbsfiler
+        #rm(str(atoRnWinRgt))       
         statusIntTFHKA = True
         logger.info('Programa IntTFHKA ejecutado correctamente!')
     except Exception as e:
