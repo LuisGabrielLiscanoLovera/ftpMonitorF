@@ -1,5 +1,5 @@
-"""Foobar.py: Description of what foobar does."""
-__author__      = "Luis Liscano"
+"""Extre informacion de la impresora fiscall BIXOLON"""
+__author__      = "Luis Liscano luisthemaster3@gmail.com"
 __copyright__   = "Copyright 2019, DHJGR"
 
 import os.path as path
