@@ -1,6 +1,10 @@
 """Extre informacion de la impresora fiscall BIXOLON"""
-__author__      = "Luis Liscano luisthemaster3@gmail.com"
+__author__      = "Luis Liscano
 __copyright__   = "Copyright 2019, DHJGR"
+__email__ = "luisthemaster3@gmail.com"
+__status__ = "Production"
+__version__ = "1.0.1"
+
 
 import os.path as path
 import configparser as cp
