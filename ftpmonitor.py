@@ -1,3 +1,7 @@
+"""Foobar.py: Description of what foobar does."""
+__author__      = "Luis Liscano"
+__copyright__   = "Copyright 2019, DHJGR"
+
 import os.path as path
 import configparser as cp
 from os import system as sys
