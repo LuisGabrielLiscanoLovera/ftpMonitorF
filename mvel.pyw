@@ -46,18 +46,20 @@ try:
 
     #spcall(rmvelRgdit)
     #startup("C:\\IntTFHKA\\runmvel.exe")#init de registro
-
+    #fecha
+    today = date.today()
     if not path.exists(log):mk(log)
     logger    = logging.getLogger('Monitoreo de venta mvel')
     logger.setLevel(logging.DEBUG)
-    handler   = logging.handlers.TimedRotatingFileHandler(filename='log/file.log', when="m", interval=1, backupCount=5)
+    mesAnio=str(today.month)+''+str(today.year)
+    fileLog ='log/file-%s.log'% str(mesAnio)
+    handler   = logging.handlers.TimedRotatingFileHandler(filename=fileLog, when="m", interval=1, backupCount=5)
     formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%d-%m-%y %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    #fecha
-    today = date.today()
     #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha
     #parametro de configuracion
+
     configuracion   =   cp.ConfigParser()
     if (ifExi(conf)):
         configuracion.read(conf)
@@ -127,7 +129,6 @@ def activarIntTFHKA():#retorna bool
         global uoz,txtStImp
         if ifExi(uoz):
             spcall(uoz)#ejecuto el ouz.exe
-            
             slp(5)
             if ifExi(txtStImp):
                 getSta    = open(txtStImp, "r+").read()
@@ -150,21 +151,25 @@ def activarIntTFHKA():#retorna bool
 #lectura de los archivos y registro de archivo para el servidor ftp
 #c/wc U0Z
 
-
-
 def cwU0Z():
     try:
-        global archivoU0Z,Ru0z
+        global archivoU0Z,Ru0z,reIntento,tiempoSlep
+        estado = False
         U0Z_ftp          = open(archivoU0Z, "a+")
         final_de_U0Z_ftp = U0Z_ftp.tell()
         if ifExi(Ru0z):
             uozNew   = open(Ru0z, "r+").read()
             listaU0Z = ['%s \n'% str(uozNew)]
+            if len(listaU0Z) <= 3:
+                for i in reIntento+1:
+                    slp(tiempoSlep)
+                    logger.warning("Error al escribir U0Z verifique conexion puerto impresora intento "+reIntento)
+                    if i ==reIntento:estado   = False
+                    cwU0Z()
             U0Z_ftp.writelines(listaU0Z)
             U0Z_ftp.seek(final_de_U0Z_ftp)
             estado   = True
         U0Z_ftp.close()
-
 
     except Exception as e:
         global infoERR
@@ -454,6 +459,7 @@ def modoTres():
 
 
 if activacion ==1:
+
     if modoEjecucion == 1:modoUno()
     if modoEjecucion == 2:modoDos()
     if modoEjecucion == 3:modoTres()
