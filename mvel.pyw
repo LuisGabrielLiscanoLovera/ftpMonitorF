@@ -16,13 +16,24 @@ import logging.handlers
 #https://stackoverflow.com/questions/4438020/how-to-start-a-python-file-while-windows-starts
 
 
+"""
+import getpass
+USER_NAME = getpass.getuser()
+def startup(file_path="C:\\IntTFHKA\\runmvel.exe"):
+    if file_path == "":
+        file_path = os.path.dirname(os.path.realpath(__file__))
+    bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
+    with open(bat_path + '\\' + "mvel.bat", "w+") as bat_file:
+        bat_file.write(r'start "" %s' % file_path)
+"""
+
 
 ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
 spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
 
 
 
-rmvelRgdit="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\runmvel.exe\""""
+#rmvelRgdit="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\runmvel.exe\""""
 conf          =  'conf.cfg'
 txtStImp      =  'Stat_Err.txt'
 Ru0z          =  'Reporte.txt'
