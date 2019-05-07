@@ -5,6 +5,8 @@ from subprocess import call as spc
 from os import system as sys
 from os import remove as rm
 from os import mkdir as mk
+from os.path import dirname
+from os.path import realpath
 from datetime import date, timedelta
 from time import sleep as slp
 from ftplib import FTP
@@ -12,20 +14,18 @@ from shutil import copy as copy
 #import shutil
 import logging
 import logging.handlers
-#ver
-#https://stackoverflow.com/questions/4438020/how-to-start-a-python-file-while-windows-starts
-
-
-"""
 import getpass
 USER_NAME = getpass.getuser()
-def startup(file_path="C:\\IntTFHKA\\runmvel.exe"):
+
+
+def startup(file_path):
     if file_path == "":
-        file_path = os.path.dirname(os.path.realpath(__file__))
+        file_path = dirname(realpath(__file__))
     bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
-    with open(bat_path + '\\' + "mvel.bat", "w+") as bat_file:
-        bat_file.write(r'start "" %s' % file_path)
-"""
+    with open(bat_path + '\\' + "mvel.vbs", "w+") as bat_file:
+        vbs='''set objshell = createobject("wscript.shell")\nobjshell.run "%s",vbhide''' % file_path
+        bat_file.write(vbs)
+
 
 
 ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
@@ -37,15 +37,16 @@ spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
 conf          =  'conf.cfg'
 txtStImp      =  'Stat_Err.txt'
 Ru0z          =  'Reporte.txt'
-Rs1           =  'Status.txt'#
+Rs1           =  'Reporte_S1.txt'#
 log           =  'log' #carpeta
 uoz           =  'uoz.exe'#ejecutable al llamar
 reIntento     = 30
-
+infoERR       = False
 try:
 
-    spcall(rmvelRgdit)
-    spcall(uoz)
+    #spcall(rmvelRgdit)
+    #startup("C:\\IntTFHKA\\runmvel.exe")#init de registro
+
     if not path.exists(log):mk(log)
     logger    = logging.getLogger('Monitoreo de venta mvel')
     logger.setLevel(logging.DEBUG)
@@ -55,7 +56,6 @@ try:
     logger.addHandler(handler)
     #fecha
     today = date.today()
-    infoERR       = True
     #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha
     #parametro de configuracion
     configuracion   =   cp.ConfigParser()
@@ -127,7 +127,8 @@ def activarIntTFHKA():#retorna bool
         global uoz,txtStImp
         if ifExi(uoz):
             spcall(uoz)#ejecuto el ouz.exe
-            slp(6)
+            
+            slp(5)
             if ifExi(txtStImp):
                 getSta    = open(txtStImp, "r+").read()
                 getStatus = getSta[0:5].strip()
@@ -135,7 +136,6 @@ def activarIntTFHKA():#retorna bool
                 if(len(getStatus)    ==  4):
                     logger.info('Impresora conectada...')
                     estado  =  True
-                    rm(txtStImp)#borro archivo impresora
                 else:
                     estado=False
                     logger.warning('Error de impresora')
@@ -150,22 +150,21 @@ def activarIntTFHKA():#retorna bool
 #lectura de los archivos y registro de archivo para el servidor ftp
 #c/wc U0Z
 
+
+
 def cwU0Z():
     try:
         global archivoU0Z,Ru0z
         U0Z_ftp          = open(archivoU0Z, "a+")
         final_de_U0Z_ftp = U0Z_ftp.tell()
         if ifExi(Ru0z):
-            slp(2)
             uozNew   = open(Ru0z, "r+").read()
             listaU0Z = ['%s \n'% str(uozNew)]
             U0Z_ftp.writelines(listaU0Z)
             U0Z_ftp.seek(final_de_U0Z_ftp)
-            uozNew.close()
-            rm(Ru0z)
             estado   = True
         U0Z_ftp.close()
-        slp(2)
+
 
     except Exception as e:
         global infoERR
@@ -180,15 +179,11 @@ def cwS1():
     try:
         global archivoS1,Rs1
         S1_ftp  =  open(archivoS1, "a+")
-        if ifExi(Rs1      ):
-            slp(2)
+        if ifExi(Rs1):
             final_de_S1_ftp = S1_ftp.tell()
-            s1New=open(Rs1      , "r+").read()
-            listaS1         = ['%s \n'%s1New ]
+            listaS1         = ['%s \n'% open(Rs1, "r+").read()]
             S1_ftp.writelines(listaS1)
             S1_ftp.seek(final_de_S1_ftp)
-            s1New.close()
-            rm(Ru0z)
             estado            =  True
 
         S1_ftp.close()
@@ -317,7 +312,7 @@ def pubCCS1():
     return StatusPubS1
 
 def main():
-    global today,tiempoSlep,archivoU0Z,archivoS1,uoz
+    global today,tiempoSlep,archivoU0Z,archivoS1,Rs1,Ru0z,txtStImp
     slp(tiempoSlep)
     try:
         enviado  =  False
@@ -333,8 +328,11 @@ def main():
                         #conexionFTP()['ftp'].retrlines('LIST')
                         conexionFTP()['ftp'].quit()
                         logger.info('archivo publicado al servidor ftp satfactoriamente ')
-
+                        rm(Rs1)
+                        rm(Ru0z)
+                        rm(txtStImp)
                         enviado  = True
+
                     else:
                         enviado  = False
 
@@ -351,7 +349,7 @@ def main():
     return enviado
 
 def mainDos():
-    global today,tiempoSlep,archivoU0Z,archivoS1,uoz
+    global today,tiempoSlep,archivoU0Z,archivoS1,Rs1,Ru0z
     slp(tiempoSlep)
     try:
         enviado  =  False
@@ -362,8 +360,9 @@ def mainDos():
                 if (copiaCCS1() and copiaCCU0Z()):
                     logger.info('Archivo U0Z y S1 copiado a la carpeta compartida satifactoriamente')
                     enviado  =  True
-                    rm(archivoS1)
-                    rm(archivoU0Z)
+                    rm(Rs1)
+                    rm(Ru0z)
+                    rm(txtStImp)
                 else:
                     enviado  =  False
                     logger.warning("Error al escribir U0Z y S1")
