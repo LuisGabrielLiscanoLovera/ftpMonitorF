@@ -12,6 +12,8 @@ from shutil import copy as copy
 #import shutil
 import logging
 import logging.handlers
+#ver
+#https://stackoverflow.com/questions/4438020/how-to-start-a-python-file-while-windows-starts
 
 
 
