@@ -69,8 +69,8 @@ try:
         codigo              = configuracion['General']['codigo']
         numpc               = configuracion['General']['numpc']
         activacion          = int(configuracion['General']['activacion'])
-        tiempoInit          = int(configuracion['General']['tiempo_init'])
-        tiempoErr          = int(configuracion['General']['tiempo_err'])
+        tiempoInit          = int(configuracion['General']['tiempo_init'])*60
+        tiempoErr          = int(configuracion['General']['tiempo_err'])*60
 
         #nombre salida archivoinfoERR       = True
         archivoU0Z          = codigo+"_%s_U0Z.txt"%numpc
