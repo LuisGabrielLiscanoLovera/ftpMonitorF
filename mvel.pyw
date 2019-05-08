@@ -11,13 +11,14 @@ from datetime import date, timedelta
 from time import sleep as slp
 from ftplib import FTP
 from shutil import copy as copy
-#import shutil
 import logging
 import logging.handlers
 import getpass
+
+
 USER_NAME = getpass.getuser()
 
-
+#tiempo de inicio   http://www.conversordeunidades.org/tiempo-s-ms.php
 def startup(file_path):
     if file_path == "":
         file_path = dirname(realpath(__file__))
@@ -27,7 +28,6 @@ def startup(file_path):
         bat_file.write(vbs)
 
 
-
 ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
 spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
 
@@ -35,11 +35,11 @@ spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
 
 #rmvelRgdit="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\runmvel.exe\""""
 conf          =  'conf.cfg'
-txtStImp      =  'Stat_Err.txt'
 Ru0z          =  'Reporte.txt'
 Rs1           =  'Reporte_S1.txt'#
 log           =  'log' #carpeta
 uoz           =  'uoz.exe'#ejecutable al llamar
+
 reIntento     = 30
 infoERR       = False
 try:
@@ -52,8 +52,8 @@ try:
     logger    = logging.getLogger('Monitoreo de venta mvel')
     logger.setLevel(logging.DEBUG)
     mesAnio=str(today.month)+''+str(today.year)
-    fileLog ='log/file-%s.log'% str(mesAnio)
-    handler   = logging.handlers.TimedRotatingFileHandler(filename=fileLog, when="m", interval=1, backupCount=5)
+    fileLog ='log/log-%s.log'% str(mesAnio)
+    handler   = logging.handlers.TimedRotatingFileHandler(filename=fileLog, when="m", interval=1)
     formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%d-%m-%y %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -69,7 +69,8 @@ try:
         codigo              = configuracion['General']['codigo']
         numpc               = configuracion['General']['numpc']
         activacion          = int(configuracion['General']['activacion'])
-        tiempoSlep          = int(configuracion['General']['slep'])
+        tiempoInit          = int(configuracion['General']['tiempo_init'])
+        tiempoErr          = int(configuracion['General']['tiempo_err'])
 
         #nombre salida archivoinfoERR       = True
         archivoU0Z          = codigo+"_%s_U0Z.txt"%numpc
@@ -78,7 +79,7 @@ try:
     else:
         confTxt = open(conf, "w+")
         final_de_confTxt = confTxt.tell()
-        conftxt="""[General]\ncodigo = set\nnumpc = set\nslep = 1\nactivacion=1\n\n[PathFTP]\nrutafile = /ftpruta\n\n[FeEjecucion]\nfecha = \n\n[modoEjecucion]\nmodo = 1\ncarpetacompartida = temp"""
+        conftxt="""[General]\ncodigo = set\nnumpc = set\ntiempo_err = 1\nactivacion=1\n\n[PathFTP]\nrutafile = /ftpruta\n\n[FeEjecucion]\nfecha = \n\n[modoEjecucion]\nmodo = 1\ncarpetacompartida = temp"""
         confTxt.writelines(conftxt)
         confTxt.seek(final_de_confTxt)
         confTxt.close()
@@ -95,11 +96,12 @@ def conexionFTP():
     estatusCftp=0
     while True:
         try:
-            global rutaFtp,tiempoSlep
+            global rutaFtp,tiempoErr
             ftp = FTP('ftp.cocaisystem.com')
             ftp.login('cocaisys','mE]hX9aW6X32b+')
             ftp.cwd(rutaFtp)
             estatusCftp = True
+
 
         except Exception as e:
             global infoERR
@@ -109,7 +111,7 @@ def conexionFTP():
             estatusCftp  =  False
 
         if estatusCftp == True:break
-        else:slp(tiempoSlep)
+        else:slp(tiempoErr)
     return {'ftp':ftp,'estatusCftp':estatusCftp}
 
 
@@ -126,20 +128,18 @@ def stFcfha():
 
 def activarIntTFHKA():#retorna bool
     try:
-        global uoz,txtStImp
+        global uoz,Ru0z,reIntento,tiempoErr
         if ifExi(uoz):
             spcall(uoz)#ejecuto el ouz.exe
-            slp(5)
-            if ifExi(txtStImp):
-                getSta    = open(txtStImp, "r+").read()
-                getStatus = getSta[0:5].strip()
-                #getSta.close()
-                if(len(getStatus)    ==  4):
+            slp(2)
+            if ifExi(Ru0z):
+                getSta    = open(Ru0z, "r+").read()
+                if(len(getSta)   >=  4):
                     logger.info('Impresora conectada...')
                     estado  =  True
                 else:
-                    estado=False
-                    logger.warning('Error de impresora')
+                    estado  =    False
+
         else:logger.warning('Programa no se ouz.exe encuentra disponible' );exit()
     except Exception as e:
         global infoERR
@@ -148,24 +148,17 @@ def activarIntTFHKA():#retorna bool
         logger.warning(str(e))
     return estado
 
-#lectura de los archivos y registro de archivo para el servidor ftp
-#c/wc U0Z
+
 
 def cwU0Z():
     try:
-        global archivoU0Z,Ru0z,reIntento,tiempoSlep
+        global archivoU0Z,Ru0z,reIntento,tiempoErr
         estado = False
         U0Z_ftp          = open(archivoU0Z, "a+")
         final_de_U0Z_ftp = U0Z_ftp.tell()
         if ifExi(Ru0z):
             uozNew   = open(Ru0z, "r+").read()
             listaU0Z = ['%s \n'% str(uozNew)]
-            if len(listaU0Z) <= 3:
-                for i in reIntento+1:
-                    slp(tiempoSlep)
-                    logger.warning("Error al escribir U0Z verifique conexion puerto impresora intento "+reIntento)
-                    if i ==reIntento:estado   = False
-                    cwU0Z()
             U0Z_ftp.writelines(listaU0Z)
             U0Z_ftp.seek(final_de_U0Z_ftp)
             estado   = True
@@ -316,9 +309,9 @@ def pubCCS1():
         logger.warning(str(e))
     return StatusPubS1
 
-def main():
-    global today,tiempoSlep,archivoU0Z,archivoS1,Rs1,Ru0z,txtStImp
-    slp(tiempoSlep)
+def mainUno():
+    global today,tiempoInit,archivoU0Z,archivoS1,Rs1,Ru0z, reIntento
+    slp(tiempoInit)
     try:
         enviado  =  False
         if (activarIntTFHKA()):
@@ -326,24 +319,27 @@ def main():
             if (cwU0Z() and cwS1()):
                 logger.info('Archivo U0Z y S1 creado satifactoriamente')
                 if conexionFTP()['estatusCftp']:
-                    logger.info('conexiona ftp co el servidor en sincronia ')
+                    logger.info('conexiona ftp con el servidor en sincronia ')
                     if (pubU0Z() and pubS1()):
-                        #conexionFTP()['ftp'].delete(archivoU0Z)
-                        #conexionFTP()['ftp'].delete(archivoS1)
+                        conexionFTP()['ftp'].delete(archivoU0Z)
+                        conexionFTP()['ftp'].delete(archivoS1)
                         #conexionFTP()['ftp'].retrlines('LIST')
                         conexionFTP()['ftp'].quit()
                         logger.info('archivo publicado al servidor ftp satfactoriamente ')
-                        rm(Rs1)
-                        rm(Ru0z)
-                        rm(txtStImp)
+                        #rm(Rs1)
+                        #pyrm(Ru0z)
+
                         enviado  = True
 
                     else:
                         enviado  = False
 
-                else:logger.warning("error de conexion con el servidor ftp ")#podemos intentar hacer otra coso
+                else:logger.warning("error de conecion con el servidor ftp ")#podemos intentar hacer otra coso
             else:logger.warning("Error al escribir U0Z y S1")
-        else:logger.warning("Error de impresora verifique ")
+        else:
+            for i in range(reIntento):
+                if activarIntTFHKA():mainUno()
+                else:logger.warning("Error de impresora verifique conecion inento "+str(i))
 
     except Exception as e:
         global infoERR
@@ -354,8 +350,8 @@ def main():
     return enviado
 
 def mainDos():
-    global today,tiempoSlep,archivoU0Z,archivoS1,Rs1,Ru0z
-    slp(tiempoSlep)
+    global today,tiempoInit,archivoU0Z,archivoS1,Rs1,Ru0z
+    slp(tiempoInit)
     try:
         enviado  =  False
         if (activarIntTFHKA()):
@@ -367,12 +363,17 @@ def mainDos():
                     enviado  =  True
                     rm(Rs1)
                     rm(Ru0z)
-                    rm(txtStImp)
                 else:
                     enviado  =  False
                     logger.warning("Error al escribir U0Z y S1")
             else:logger.warning("Error al escribir U0Z y S1")
-        else:logger.warning("Error de conxion con impresora ")
+
+        else:
+            for i in range(reIntento):
+                if activarIntTFHKA():mainDos()
+                else:logger.warning("Error de impresora verifique conecion inento "+str(i))
+
+
     except Exception as e:
         global infoERR
         if infoERR == True:
@@ -381,8 +382,8 @@ def mainDos():
     return enviado
 
 def mainTres():
-    global tiempoSlep,archivoU0Z,archivoS1
-    slp(tiempoSlep)
+    global tiempoInit,archivoU0Z,archivoS1
+    slp(tiempoInit)
     try:
         enviado      =  False
         while True:
@@ -393,7 +394,7 @@ def mainTres():
                 rm(archivoU0Z)
                 break
             else:
-                slp(tiempoSlep)
+                slp(tiempoErr)
                 logger.warning("Error al copiar archivo U0Z y S1")
 
     except Exception as e:
@@ -403,67 +404,56 @@ def mainTres():
         logger.warning(str(e))
     return enviado
 
-def modoDebug():
-    debug           =  'debug' #carpeta
-    if not path.exists(debug):mk(debug)
-    logger    = logging.getLogger('Monitoreo de venta mvel')
-    logger.setLevel(logging.DEBUG)
-    handler   = logging.handlers.TimedRotatingFileHandler(filename='debug/file.log', when="m", interval=1, backupCount=5)
-    formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%d-%m-%y %H:%M:%S')
-    handler.setFormatter(formatter)
-if infoERR==True:modoDebug()
+def nexDay():
+    global tiempoInit
+    fechaEjecu  =  stFcfha()
+    while True:
+        if (str(fechaEjecu)  ==  str(date.today())):slp(tiempoInit+7200)
+        else:fechaEjecu       =  date.today();stFcfha();main()
 
 def modoUno():
-    global reIntento,tiempoSlep
-    fechaEjecu  =  stFcfha()
-    if main():
+    global reIntento,tiempoErr
+    if mainUno():
         logger.info('Ejcucion exitoxa modo 1!')
-        while True:
-            if (str(fechaEjecu)  ==  str(date.today())):slp(30000+tiempoSlep)
-            else:fechaEjecu       =  date.today();stFcfha();modoUno()
+        nexDay()
     else:
-        for i in range(reIntento+1):
-            slp(30000+tiempoSlep)
-            if i == reIntento:logger.warning('Error en jecucion en systema intento '+str(i));exit()
-            logger.warning('Error en jecucion en systema intento '+str(i))
-            modoUno()
+        slp(tiempoErr)
+        logger.warning('Error en jecucion en systema ')
+        nexDay()
 
 def modoDos():
-    global reIntento,tiempoSlep
-    fechaEjecu  =  stFcfha()
+    global reIntento,tiempoErr
+
     if mainDos():
         logger.info('Ejcucion exitoxa! modo 2')
-        while True:
-            if (str(fechaEjecu)  ==  str(date.today())):slp(30000+tiempoSlep)
-            else:fechaEjecu       =  date.today();stFcfha();modoDos()
+        nexDay()
     else:
-        for i in range(reIntento+1):
-            slp(30000+tiempoSlep)
-            if i == reIntento:logger.warning('Error en jecucion en systema intento '+str(i));exit()
-            logger.warning('Error en jecucion en systema intento '+str(i))
-            modoDos()
+        slp(tiempoErr)
+        logger.warning('Error en jecucion en systema')
+        modoDos()
 
 def modoTres():
-    global tiempoSlep,reIntento
-    fechaEjecu  =  stFcfha()
+    global tiempoErr,reIntento
+
     if mainTres():
         logger.info('Ejcucion exitoxa! modo 3')
-        while (True):
-            if (str(fechaEjecu)  ==  str(date.today())):slp(30000+tiempoSlep)
-            else:fechaEjecu      =   date.today();stFcfha();modoTres()
-    for i in range(reIntento+1):
-            slp(30000+tiempoSlep)
-            if i == reIntento:logger.warning('Error en jecucion en systema intento '+str(i));exit()
-            logger.warning('Error en jecucion en systema intento '+str(i))
-            modoTres()
+        nexDay()
+    else:
+        slp(tiempoErr)
+        logger.warning('Error en jecucion en systema intento ')
+        modoTres()
 
 
-if activacion ==1:
+def main():
+    global activacion, modoEjecucion
 
-    if modoEjecucion == 1:modoUno()
-    if modoEjecucion == 2:modoDos()
-    if modoEjecucion == 3:modoTres()
-    if (modoEjecucion > 3  or  modoEjecucion < 0):
-        logger.warning('Error archivo de configuracion')
-        exit()
-else:logger.warning('Error archivo de configuracion');exit()
+    if activacion ==1:
+        if modoEjecucion == 1:modoUno()
+        if modoEjecucion == 2:modoDos()
+        if modoEjecucion == 3:modoTres()
+        if (modoEjecucion > 3  or  modoEjecucion < 0):
+            logger.warning('Error archivo de configuracion')
+            exit()
+    else:logger.warning('Error archivo de configuracion');exit()
+
+main()
