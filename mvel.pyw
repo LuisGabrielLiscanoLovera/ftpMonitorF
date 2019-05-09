@@ -84,13 +84,13 @@ def startup(file_path):
 
 def conexionFTP():
     global reIntento, rutaFtp,tiempoErr,hostFtp,passFtp,userFtp,infoERR
-    request = requests.get('http://ftp.cocaisystem.com')
+    request = requests.get('http://'+hostFtp)
     if request.status_code == 200:
         estatusCftp=False
         ftp =False
         try:
-            ftp = FTP('ftp.cocaisystem.com')
-            ftp.login('cocaisys','mE]hX9aW6X32b+')
+            ftp = FTP(hostFtp)
+            ftp.login(userFtp,passFtp)
             ftp.cwd(rutaFtp)
             estatusCftp = True
 
@@ -99,8 +99,9 @@ def conexionFTP():
             logger.warning('Error al conectar al servidor ftp '+str(e))
     else:
         logger.warning('Error al conectar al servidor Error de internet '+str(e))
-        slp(tiempoErr)
-        main()
+        for i in range(reIntento):
+            if conexionFTP()['ftp']:main()
+            else:logger.warning("reconecion internet intento  "+str(i));slp(tiempoErr)#
     return {'ftp':ftp,'estatusCftp':estatusCftp}
 
 
