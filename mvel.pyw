@@ -1,53 +1,43 @@
-import os.path as path
-import configparser as cp
-from traceback import format_exc as formErro
-from subprocess import call as spc
-from os import system as sys
-from os import remove as rm
-from os import mkdir as mk
-from os.path import dirname
-from os.path import realpath
-from datetime import date, timedelta
-from time import sleep as slp
-from ftplib import FTP
-from shutil import copy as copy
-import logging
-import logging.handlers
-import getpass
-
-
-USER_NAME = getpass.getuser()
-
-#tiempo de inicio   http://www.conversordeunidades.org/tiempo-s-ms.php
-def startup(file_path):
-    if file_path == "":
-        file_path = dirname(realpath(__file__))
-    bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
-    with open(bat_path + '\\' + "mvel.vbs", "w+") as bat_file:
-        vbs='''set objshell = createobject("wscript.shell")\nobjshell.run "%s",vbhide''' % file_path
-        bat_file.write(vbs)
-
-
-ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
-spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
-
-
-
-#rmvelRgdit="""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\runmvel.exe\""""
-conf          =  'conf.cfg'
-Ru0z          =  'Reporte.txt'
-Rs1           =  'Reporte_S1.txt'#
-log           =  'log' #carpeta
-uoz           =  'uoz.exe'#ejecutable al llamar
-
-reIntento     = 30
-infoERR       = False
+###Imports
 try:
+    import requests
+    import os.path as path
+    import configparser as cp
+    from traceback import format_exc as formErro
+    from subprocess import call as spc
+    from os import system as sys
+    from os import remove as rm
+    from os import mkdir as mk
+    from os.path import dirname
+    from os.path import realpath
+    from datetime import date, timedelta
+    from time import sleep as slp
+    from ftplib import FTP
+    from shutil import copy as copy
+    import logging
+    import logging.handlers
+    import getpass
+except Exception as e:exit()
 
-    #spcall(rmvelRgdit)
-    #startup("C:\\IntTFHKA\\runmvel.exe")#init de registro
-    #fecha
-    today = date.today()
+
+try:
+    today         = date.today()#fecha
+    conf          = 'conf.cfg'
+    hostFtp       = 'ftp.cocaisystem.com'
+    userFtp       = 'cocaisys'
+    passFtp       = 'mE]hX9aW6X32b+'
+    Ru0z          = 'Reporte.txt'
+    Rs1           = 'Reporte_S1.txt'
+    log           = 'log' #carpeta
+    uoz           = 'uoz.exe'#ejecutable al llamar
+    reIntento     = 30
+    infoERR       = False #muestra Err
+    ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
+    spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
+    #spcall("""REG ADD \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /V \"Rebootmv\" /t REG_SZ /F /D \"C:\\IntTFHKA\\runmvel.exe\"""")
+
+
+    #Archivo registro
     if not path.exists(log):mk(log)
     logger    = logging.getLogger('Monitoreo de venta mvel')
     logger.setLevel(logging.DEBUG)
@@ -57,9 +47,8 @@ try:
     formatter = logging.Formatter(fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',datefmt='%d-%m-%y %H:%M:%S')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-    #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha
-    #parametro de configuracion
 
+    #archivo de configuracion
     configuracion   =   cp.ConfigParser()
     if (ifExi(conf)):
         configuracion.read(conf)
@@ -69,54 +58,51 @@ try:
         codigo              = configuracion['General']['codigo']
         numpc               = configuracion['General']['numpc']
         activacion          = int(configuracion['General']['activacion'])
-        tiempoInit          = int(configuracion['General']['tiempo_init'])*60
-        tiempoErr          = int(configuracion['General']['tiempo_err'])*60
+        tiempoInit          = int(configuracion['General']['tiempo_init'])
+        tiempoErr           = int(configuracion['General']['tiempo_err'])
 
         #nombre salida archivoinfoERR       = True
         archivoU0Z          = codigo+"_%s_U0Z.txt"%numpc
         archivoS1           = codigo+"_%s_S1.txt"%numpc
 
-    else:
-        confTxt = open(conf, "w+")
-        final_de_confTxt = confTxt.tell()
-        conftxt="""[General]\ncodigo = set\nnumpc = set\ntiempo_err = 1\nactivacion=1\n\n[PathFTP]\nrutafile = /ftpruta\n\n[FeEjecucion]\nfecha = \n\n[modoEjecucion]\nmodo = 1\ncarpetacompartida = temp"""
-        confTxt.writelines(conftxt)
-        confTxt.seek(final_de_confTxt)
-        confTxt.close()
-        logger.warning("Aarchivo de conf ya encuentra disponible ")
-        exit()
+    else:cretFileConf()
 except Exception as e:
-    if infoERR == True:
-        logger.warning(formErro)
+    if infoERR == True:logger.warning(formErro)
     logger.warning(str(e))
     #exit()#si no consigue archivo de configuracion cierra el programa
 
 
+def startup(file_path):
+    USER_NAME = getpass.getuser()
+    if file_path == "":
+        file_path = dirname(realpath(__file__))
+    bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
+    with open(bat_path + '\\' + "mvel.vbs", "w+") as bat_file:
+        vbs='''set objshell = createobject("wscript.shell")\nobjshell.run "%s",vbhide''' % file_path
+        bat_file.write(vbs)
+#startup("C:\\IntTFHKA\\runmvel.exe")#init de registro
+
 def conexionFTP():
-    estatusCftp=0
-    while True:
+    global reIntento, rutaFtp,tiempoErr,hostFtp,passFtp,userFtp,infoERR
+    request = requests.get('http://ftp.cocaisystem.com')
+    if request.status_code == 200:
+        estatusCftp=False
+        ftp =False
         try:
-            global rutaFtp,tiempoErr
             ftp = FTP('ftp.cocaisystem.com')
             ftp.login('cocaisys','mE]hX9aW6X32b+')
             ftp.cwd(rutaFtp)
             estatusCftp = True
 
-
         except Exception as e:
-            global infoERR
-            if infoERR == True:
-                logger.warning(formErro)
+            if infoERR == True:logger.warning(formErro)
             logger.warning('Error al conectar al servidor ftp '+str(e))
-            estatusCftp  =  False
-
-        if estatusCftp == True:break
-        else:slp(tiempoErr)
+    else:
+        logger.warning('Error al conectar al servidor Error de internet '+str(e))
+        slp(tiempoErr)
+        main()
     return {'ftp':ftp,'estatusCftp':estatusCftp}
 
-
-
-#fecha de ejec ucion al archivo de configuracionn rtn string fecha
 
 def stFcfha():
     global configuracion,conf
@@ -124,14 +110,14 @@ def stFcfha():
     configuracion.set('FeEjecucion', 'fecha', str(today))
     with open(conf, "w+") as configfile:configuracion.write(configfile);configfile.close()
     return configuracion['FeEjecucion']['fecha']
-#activa IntTFHKA.exe para generar los reportes
 
-def activarIntTFHKA():#retorna bool
+
+def activarIntTFHKA():
     try:
-        global uoz,Ru0z,reIntento,tiempoErr
-        if ifExi(uoz):
-            spcall(uoz)#ejecuto el ouz.exe
-            slp(2)
+        global uoz,Ru0z,infoERR
+        if ifExi(uoz)==False:
+            #spcall(uoz)#ejecuto el ouz.exe
+            #slp(2)
             if ifExi(Ru0z):
                 getSta    = open(Ru0z, "r+").read()
                 if(len(getSta)   >=  4):
@@ -142,12 +128,35 @@ def activarIntTFHKA():#retorna bool
 
         else:logger.warning('Programa no se ouz.exe encuentra disponible' );exit()
     except Exception as e:
-        global infoERR
         if infoERR == True:
             logger.warning(formErro)
         logger.warning(str(e))
     return estado
 
+
+def cretFileConf():
+    confTxt = open(conf, "w+")
+    final_de_confTxt = confTxt.tell()
+    conftxt="""[General]\n
+    codigo = set\n
+    numpc = set\n
+    tiempo_err = 1\n
+    tiempo_init = 1\n
+    activacion=1\n\n
+    [PathFTP]\n
+    portFtp=''
+    rutafile = /ftpruta\n\n
+    [FeEjecucion]\n
+    fecha = \n\n
+    [modoEjecucion]\n
+    modo = 1\n
+    carpetacompartida = temp"""
+    confTxt.writelines(conftxt)
+    confTxt.seek(final_de_confTxt)
+    confTxt.close()
+    logger.warning("Aarchivo de conf ya encuentra disponible ")
+    slp(30*60)
+    main()
 
 
 def cwU0Z():
@@ -173,6 +182,7 @@ def cwU0Z():
         U0Z_ftp.close()
     return estado
 
+
 def cwS1():
     try:
         global archivoS1,Rs1
@@ -194,11 +204,11 @@ def cwS1():
         logger.warning(str(e))
         S1_ftp.close()
     return estado
-#U0Z
+
 
 def pubU0Z():
     try:
-        global archivoU0Z
+        global archivoU0Z,infoERR
         fileU0Z = str(archivoU0Z)
         file    = open(fileU0Z,'rb')
         if(conexionFTP()['ftp'].storbinary('STOR %s' % fileU0Z, file)):StatusPubU0Z  =  True
@@ -207,12 +217,11 @@ def pubU0Z():
         logger.info("U0Z publicado al ftp")
         conexionFTP()['ftp'].quit()
     except Exception as e:
-        global infoERR
-        if infoERR == True:
-            logger.warning(formErro)
+        if infoERR == True:logger.warning(formErro)
         file.close()
         logger.warning(str(e))
     return StatusPubU0Z
+
 
 def pubS1():
     try:
@@ -230,6 +239,7 @@ def pubS1():
             logger.warning(formErro)
         logger.warning(str(e))
     return StatusPubS1
+
 
 def copiaCCU0Z():
     try:
@@ -250,16 +260,20 @@ def copiaCCU0Z():
         logger.warning(str(e))
     return StatusPubU0Z
 
+
 def copiaCCS1():
     try:
-        global archivoS1,carpetaCompartida
+        global archivoS1,carpetaCompartida,tiempoErr
         fileS1  =  str(archivoS1)
         if (path.exists(fileS1)):
             copy(fileS1, carpetaCompartida)
             #shutil.copy(fileS1, carpetaCompartida)
             StatusPubS1  =  True
             logger.info("S1 copiado a a la carpeta compartida")
-        else:StatusPubS1 =False
+        else:
+            slp(tiempoErr)
+            copiaCCS1()
+            StatusPubS1 =False
     except Exception as e:
         global infoERR
         if infoERR == True:
@@ -268,9 +282,10 @@ def copiaCCS1():
         logger.warning(str(e))
     return StatusPubS1
 
+
 def pubCCU0Z():
     try:
-        global archivoU0Z
+        global archivoU0Z,infoERR,tiempoErr
         fileU0Z  =  str(archivoU0Z)
         file     =  open(fileU0Z,'rb')
         if (path.exists(fileU0Z)):
@@ -279,18 +294,19 @@ def pubCCU0Z():
             file.close()
             logger.info("U0Z publicado al ftp")
             conexionFTP()['ftp'].quit()
-        else:StatusPubU0Z  =  False
-    except Exception as e:
-        global infoERR
-        if infoERR == True:
-            logger.warning(formErro)
+        else:
+            slp(tiempoErr)
+            pubCCU0Z()
 
+    except Exception as e:
+        if infoERR == True:logger.warning(formErro)
         logger.warning(str(e))
     return StatusPubU0Z
 
+
 def pubCCS1():
     try:
-        global archivoS1
+        global archivoS1,infoERR
         fileS1   =  str(archivoS1)
         if (path.exists(fileS1)):
             file =  open(fileS1,'rb')
@@ -301,16 +317,15 @@ def pubCCS1():
             logger.info("S1 publicado al ftp")
             StatusPubS1  =  False
     except Exception as e:
-        global infoERR
-        if infoERR == True:
-            logger.warning(formErro)
+        if infoERR == True:logger.warning(formErro)
 
         StatusPubS1  =  False
         logger.warning(str(e))
     return StatusPubS1
 
+
 def mainUno():
-    global today,tiempoInit,archivoU0Z,archivoS1,Rs1,Ru0z, reIntento
+    global today,tiempoInit,tiempoErr,archivoU0Z,archivoS1,Rs1,Ru0z, reIntento
     slp(tiempoInit)
     try:
         enviado  =  False
@@ -327,14 +342,18 @@ def mainUno():
                         conexionFTP()['ftp'].quit()
                         logger.info('archivo publicado al servidor ftp satfactoriamente ')
                         #rm(Rs1)
-                        #pyrm(Ru0z)
+                        #rm(Ru0z)
 
                         enviado  = True
 
                     else:
                         enviado  = False
 
-                else:logger.warning("error de conecion con el servidor ftp ")#podemos intentar hacer otra coso
+                else:
+                    for i in range(reIntento):
+                        if conexionFTP()['ftp']:mainUno()
+                        else:logger.warning("error  con el servidor ftp intento "+str(i));slp(tiempoErr)#
+
             else:logger.warning("Error al escribir U0Z y S1")
         else:
             for i in range(reIntento):
@@ -349,8 +368,9 @@ def mainUno():
         logger.warning(str(e))
     return enviado
 
+
 def mainDos():
-    global today,tiempoInit,archivoU0Z,archivoS1,Rs1,Ru0z
+    global today,tiempoInit,tiempoErr,archivoU0Z,archivoS1,Rs1,Ru0z
     slp(tiempoInit)
     try:
         enviado  =  False
@@ -371,7 +391,7 @@ def mainDos():
         else:
             for i in range(reIntento):
                 if activarIntTFHKA():mainDos()
-                else:logger.warning("Error de impresora verifique conecion inento "+str(i))
+                else:logger.warning("Error de impresora verifique conecion inento "+str(i));slp(tiempoErr)
 
 
     except Exception as e:
@@ -381,21 +401,22 @@ def mainDos():
         logger.warning(str(e))
     return enviado
 
+
 def mainTres():
-    global tiempoInit,archivoU0Z,archivoS1
+    global tiempoInit,tiempoErr,archivoU0Z,archivoS1,reIntento
     slp(tiempoInit)
     try:
         enviado      =  False
-        while True:
-            if (pubCCS1() and pubCCU0Z()):
-                logger.info('Archivo U0Z y S1 publicado a la carpeta compartida satifactoriamente')
-                enviado  =  True
-                rm(archivoS1)
-                rm(archivoU0Z)
-                break
-            else:
-                slp(tiempoErr)
-                logger.warning("Error al copiar archivo U0Z y S1")
+        if (pubCCS1() and pubCCU0Z()):
+            logger.info('Archivo U0Z y S1 publicado a la carpeta compartida satifactoriamente')
+            enviado  =  True
+            rm(archivoS1)
+            rm(archivoU0Z)
+        else:
+            slp(tiempoErr)
+            logger.warning("Error al copiar archivo U0Z y S1")
+
+
 
     except Exception as e:
         global infoERR
@@ -403,6 +424,7 @@ def mainTres():
             logger.warning(formErro)
         logger.warning(str(e))
     return enviado
+
 
 def nexDay():
     global tiempoInit
@@ -410,6 +432,7 @@ def nexDay():
     while True:
         if (str(fechaEjecu)  ==  str(date.today())):slp(tiempoInit+7200)
         else:fechaEjecu       =  date.today();stFcfha();main()
+
 
 def modoUno():
     global reIntento,tiempoErr
@@ -421,6 +444,7 @@ def modoUno():
         logger.warning('Error en jecucion en systema ')
         nexDay()
 
+
 def modoDos():
     global reIntento,tiempoErr
 
@@ -431,6 +455,7 @@ def modoDos():
         slp(tiempoErr)
         logger.warning('Error en jecucion en systema')
         modoDos()
+
 
 def modoTres():
     global tiempoErr,reIntento
@@ -456,4 +481,9 @@ def main():
             exit()
     else:logger.warning('Error archivo de configuracion');exit()
 
-main()
+if __name__ == '__main__':main()
+
+
+
+
+ #ayer  = today - timedelta(days=1) #Se estrae el calcula de fecha
