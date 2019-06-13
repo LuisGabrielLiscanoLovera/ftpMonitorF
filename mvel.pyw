@@ -1,4 +1,6 @@
 ###Imports
+#https://stackoverflow.com/questions/2077870/how-to-load-a-c-sharp-dll-in-python
+#https://www.red-gate.com/simple-talk/dotnet/net-framework/dynamic-language-integration-in-a-c-world/
 try:
     from gc import collect as libM#liberacion de memoria
     import urllib.request
