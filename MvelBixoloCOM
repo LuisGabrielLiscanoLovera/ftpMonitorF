@@ -1,4 +1,3 @@
-###Imports
 try:
     from gc import collect as libM#liberacion de memoria
     import urllib.request
@@ -30,11 +29,11 @@ try:
     userFtp       = 'cocaisys'
     passFtp       = 'mE]hX9aW6X32b+'
     Ru0z          = 'Reporte.txt'
-    Rs1          = 'Reporte_S1.txt'
-    #Rs1           = 'Status.txt'
+    #Rs1           = 'Reporte_S1.txt'
+    Rs1           = 'Status.txt'
     log           = 'log' #carpeta
-    uoz          = 'uoz.exe'#ejecutable al llamar
-    #uoz           =  'IntTFHKA.exe' #ejecutable al llamar#por fecha
+    #uoz          = 'uoz.exe'#ejecutable al llamar
+    uoz           =  'IntTFHKA.exe' #ejecutable al llamar#por fecha
     reIntento     = 30
     USER_NAME  = getpass.getuser()
     bat_pathAD = r'C:\ Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
@@ -42,7 +41,7 @@ try:
     accDirect  = 'AccesoRunmvl.vbs'
 
 
-    infoERR       = True #muestra Err
+    infoERR       = False #muestra Err
     ifExi  = lambda archivo:path.exists(archivo)#si exsiste los archivo dependiente
     spcall = lambda exe:spc(exe, shell=False)#ejecuta subProce
     
@@ -77,7 +76,7 @@ try:
         tiempoErr                       = int(configuracion['General']['tiempo_Reintento'])*60
         dias_ant                        = int(configuracion['General']['dias_anteriores'])
 
-        #modo_Conexion                  = configuracion['General']['modo_Coneccion']
+        modo_Conexion                  = configuracion['General']['modo_Conexion']
         #nombre salida archivoinfoERR   = True
         archivoU0Z                      = str(codigo_Centro_Comercial) +"-"+ str(codigo_Tienda) +"-%s-U0Z.txt"%str(codigo_Caja)
         archivoS1                       = str(codigo_Centro_Comercial) +"-"+ str(codigo_Tienda) +"-%s-S1.txt"%str(codigo_Caja)
@@ -177,16 +176,14 @@ def stFcfha():
 def activarIntTFHKA(f_ayer):
     try:
         global uoz,Ru0z,infoERR
-        estado=False        
-        fechaAyer           = open("fecha.txt", "w+")
-        final_de_fechaAyer  = fechaAyer.tell()
-        listaU0Z            = ['%s'% str(f_ayer)]
-        fechaAyer.writelines(listaU0Z)
-        fechaAyer.seek(final_de_fechaAyer)
-        fechaAyer.close()
-        slp(3)
-        if ifExi(uoz):       
-            spcall(uoz)            
+        estado=False
+        
+        if ifExi(uoz):
+            gS1=uoz+r' UploadStatusCmd(S1)'          
+            spcall(gS1)
+            treintaR=uoz+r' UploadReportCmd(U0Z%s)'%(f_ayer*2)
+            spcall(treintaR)#ejecuto el sistematico            
+            slp(5)
             if ifExi(Ru0z):
                 getSta    = open(Ru0z, "r+").read()
                 if(len(getSta)   >=  4):
@@ -235,7 +232,6 @@ def cwU0Z():
         if ifExi(Ru0z):
             uozNew   = open(Ru0z, "r+").read()
             listaU0Z = ['%s \n'% str(uozNew)]
-            
             U0Z_ftp.writelines(listaU0Z)
             U0Z_ftp.seek(final_de_U0Z_ftp)
             estado   = True
@@ -257,8 +253,7 @@ def cwS1():
         S1_ftp  =  open(archivoS1, "a+")
         if ifExi(Rs1):
             final_de_S1_ftp = S1_ftp.tell()
-            listaS1         = ['%s \n'% open(Rs1, "r+").read().replace("-","")]
-            
+            listaS1         = ['%s \n'% open(Rs1, "r+").read()]
             S1_ftp.writelines(listaS1)
             S1_ftp.seek(final_de_S1_ftp)
             estado            =  True
@@ -421,12 +416,12 @@ def mainUno(f_ayer):
                         enviado  = False
                 else:
                     for i in range(reIntento):
-                        if conexionFTP()['ftp']:mainUno(f_ayer)
+                        if conexionFTP()['ftp']:mainUno()
                         else:logger.warning("error  con el servidor ftp intento "+str(i));slp(tiempoErr)#
             else:logger.warning("Error al escribir U0Z y S1")
         else:
             for i in range(reIntento):
-                if activarIntTFHKA(f_ayer):mainUno(f_ayer)
+                if activarIntTFHKA():mainUno()
                 else:logger.warning("Error de impresora verifique conecion inento "+str(i))
         
     except Exception as e:
@@ -434,10 +429,11 @@ def mainUno(f_ayer):
         if infoERR == True:
             logger.warning(formErro)
             logger.warning(str(e))
+    print ("Listo XD.......... "+str(enviado))
     return enviado
 
 
-def mainDos(f_ayer):
+def mainDos():
     libM()
     global today,tiempoInit,tiempoErr,archivoU0Z,archivoS1,Rs1,Ru0z
     slp(tiempoInit)
@@ -460,7 +456,7 @@ def mainDos(f_ayer):
 
         else:
             for i in range(reIntento):
-                if activarIntTFHKA(f_ayer):mainDos(f_ayer)
+                if activarIntTFHKA():mainDos()
                 else:logger.warning("Error de impresora verifique conecion inento "+str(i));slp(tiempoErr)
 
 
@@ -515,11 +511,10 @@ def modoUno(f_ayer):
         logger.warning('Error en jecucion en systema ')
         nexDay()
 
-def modoDos(f_ayer):
+def modoDos():
     global reIntento,tiempoErr
-    f_ayer=f_ayer
 
-    if mainDos(f_ayer):
+    if mainDos():
         logger.info('Ejcucion exitoxa! modo 2')
         nexDay()
     else:
@@ -539,37 +534,15 @@ def modoTres():
         logger.warning('Error en jecucion en systema intento ')
         modoTres()
 
-def treintaDias():
-    for i in range (dias_ant):
-        enviado  =  False
-        today=date.today()        
-        ayer = today - timedelta(days=i)
-        if (ayer.day<10 ):dia="0"+str(ayer.day)
-        else:dia=str(ayer.day)
-        if (ayer.month<10 ):mes="0"+str(ayer.month)     
-        f_ayer=""+str(dia)+str(mes)+str(ayer.year).replace("20","")
-
-
 
 def main():
-    global activacion, modoEjecucion,dias_ant
+    global activacion, modoEjecucion
+    
     if activacion ==1:
         if modoEjecucion == 1:
-            for i in range (dias_ant):
-                enviado  =  False
-                today=date.today()        
-                ayer = today - timedelta(days=i+1)
-                if (ayer.day<10 ):dia="0"+str(ayer.day)
-                else:dia=str(ayer.day)
-                if (ayer.month<10 ):mes="0"+str(ayer.month)     
-                f_ayer=""+str(dia)+str(mes)+str(ayer.year).replace("20","")
-                print (f_ayer)
-                modoUno(f_ayer)
-            nexDay()
-        if modoEjecucion == 2:
-
-            for i in range (dias_ant):
-
+            
+            print (str(dias_ant))
+            '''for i in range (dias_ant):
                 enviado  =  False
                 today=date.today()        
                 ayer = today - timedelta(days=i)
@@ -577,7 +550,18 @@ def main():
                 else:dia=str(ayer.day)
                 if (ayer.month<10 ):mes="0"+str(ayer.month)     
                 f_ayer=""+str(dia)+str(mes)+str(ayer.year).replace("20","")
-                modoDos(f_ayer)
+                modoUno(f_ayer)
+            '''nexDay()
+        '''if modoEjecucion == 2:
+            for i in range (dias_ant):
+                enviado  =  False
+                today=date.today()        
+                ayer = today - timedelta(days=i)
+                if (ayer.day<10 ):dia="0"+str(ayer.day)
+                else:dia=str(ayer.day)
+                if (ayer.month<10 ):mes="0"+str(ayer.month)     
+                f_ayer=""+str(dia)+str(mes)+str(ayer.year).replace("20","")
+                modoDos(f_ayer)'''
             nexDay()
 
 
